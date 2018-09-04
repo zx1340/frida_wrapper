@@ -6,6 +6,7 @@ import sys
 import glob 
 import base64
 import datetime
+import re
 
 logging.basicConfig(level=logging.INFO)
 logging.addLevelName( logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(logging.WARNING))
@@ -28,17 +29,14 @@ def file_exits(fpath):
 
 
 def get_app_version(app_name):
-	ret = cmd_get_output("adb shell dumpsys package %s"%app_name)
+	ret = cmd_get_output("adb shell dumpsys package %s | grep versionCode"%app_name)
 	if not ret:
 		raise SystemExit('dumpsys not found on device')
 	else:
-		# if type(ret) is str:
-		# 	for v in ret.split('\n'):
-		# 		if 'versionName' in v:
-		# 			logger.info("Got %s",v.split('=')[1])
-		# 			return v.split('=')[1]
-		#TODO:Xd
-		return base64.b64encode(ret)[0:10]
+		try:
+			return re.findall(r'\d+',ret)[0] 
+		except:
+			raise SystemExit("Cannot find versioncode")
 
 
 def project_exits(app_name):
