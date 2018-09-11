@@ -5,7 +5,8 @@ import subprocess
 import sys
 import glob 
 import base64
-import datetime
+# import datetime
+import time
 import re
 
 logging.basicConfig(level=logging.INFO)
@@ -34,7 +35,7 @@ def get_app_version(app_name):
 		raise SystemExit('dumpsys not found on device')
 	else:
 		try:
-			return re.findall(r'\d+',ret)[0] 
+			return re.findall(r'\d+',ret)[0]
 		except:
 			raise SystemExit("Cannot find versioncode")
 
@@ -49,6 +50,8 @@ def project_exits(app_name):
 	logger.info("Get app version: %s"%app_version)
 	if not os.path.exists('project/%s/%s'%(app_name,app_version)):
 		create_project(app_name,app_version)
+	else:
+		logger.info('Found project/%s/%s'%(app_name,app_version))
 	return app_version
 
 
@@ -58,18 +61,22 @@ def create_project(app_name,app_version):
 	os.mkdir('project/%s/%s'%(app_name,app_version))
 	copy_apk_file(app_name,app_version)
 	make_smali_code(app_name,app_version)
-	decompile(app_name,app_version)
+	#decompile(app_name,app_version)
 
 
 
 def hexdump(src, length=16):
+	
+
 	FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
 	lines = []
 	for c in xrange(0, len(src), length):
 		chars = src[c:c+length]
-		while u'' in chars:
-			chars.remove(u'')
+		# while u'' in chars:
+		# 	chars.remove(u'')
+		print (chars)
 		hex = ' '.join(["%02x" % int(x) for x in chars])
+
 		printable = ''.join(["%s" % ((int(x) <= 127 and FILTER[int(x)]) or '.') for x in chars])
 		lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
 	return ''.join(lines)
@@ -97,14 +104,14 @@ def cmd_get_output(cmd):
 	result,error = process.communicate()
 	if error:
 		logger.warning(error)
-	return result[:-2]
+	return result[:-1]
 
 def copy_apk_file(process_name,app_version):
 	logger.info("Copy apk file %s"%process_name)
 	logger.info("Copy apk file %s"%app_version)
 
-
 	flocation = cmd_get_output('adb shell pm path %s'%process_name)
+
 	if len(flocation):
 		logger.info("App location %s" % flocation)
 		pull_status = cmd_get_output('adb pull %s project/%s/%s/%s.apk'%(flocation.split(':')[1],process_name,app_version,process_name))
@@ -131,6 +138,6 @@ def basic_check():
 	if out == 'List of devices attached\n\n':
 		raise SystemExit('Device not found')
 
-def time():
-	return datetime.datetime.now().strftime("%I:%M%p_on_%B_%d_%Y")
+def current_time():
+	return str(time.time())
 
