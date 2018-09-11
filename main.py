@@ -147,7 +147,6 @@ class Message():
 
 		ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + '\n'
 		for i in range(len(self.args)):
-			print "START",self.args[i][0]
 
 			if self.args[i].startswith('[') and self.args[i].endswith(']'):
 				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]\n"+hexdump(self.args[i][1:-1].split(','))+'\n'
