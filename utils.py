@@ -72,6 +72,8 @@ def hexdump(src, length=16):
 	lines = []
 	for c in xrange(0, len(src), length):
 		chars = src[c:c+length]
+		while u'' in chars:
+			chars.remove(u'')
 		hex = ' '.join(["%02x" % (int(x) if int(x)>=0 else 0xff+int(x) )for x in chars])
 		printable = ''.join(["%s" % ((int(x) <= 127 and FILTER[int(x)]) or '.') for x in chars])
 		lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
