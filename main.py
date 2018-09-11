@@ -135,20 +135,24 @@ class Message():
 		self.sig = self.data.split('::')[1]
 		self.method = self.data.split('::')[2]
 		self.args = (self.data.split('::')[3:])
-	
 
 	def __str__(self):
 		
 		if self.type == 'O':
-			return "["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'
-
-		ret = ""
-		for i in range(len(self.args)):
-			#Array
-			if self.args[i].startswith('[') and self.args[i].endswith(']'):
-				ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + ":\t[ARG:"+str(i)+"]\n"+hexdump(self.args[i][1:-1].split(','))+'\n'
+			if self.args[0].startswith('[') and self.args[0].endswith(']'):
+				return "["+self.type+"] | "+self.sig+" | "+self.method+": \n"+hexdump(self.args[0][1:-1].split(','))+'\n'
 			else:
-				ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + ":\t[ARG:"+str(i)+"]: "+self.args[i]+'\n'
+				return "["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'
+		ret = ""
+
+		ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + '\n'
+		for i in range(len(self.args)):
+			print "START",self.args[i][0]
+
+			if self.args[i].startswith('[') and self.args[i].endswith(']'):
+				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]\n"+hexdump(self.args[i][1:-1].split(','))+'\n'
+			else:
+				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]: "+self.args[i]+'\n'
 		return ret
 
 
@@ -211,7 +215,6 @@ class FridaWrapper():
 			self.scripts.on('message', self.on_message)
 			self.scripts.load()
 			for method in self.traceconfig['Method']:
-				print (method)
 				self.scripts.exports.fh(method)
 			
 			for _class in self.traceconfig['Class']:
@@ -249,6 +252,8 @@ class FridaWrapper():
 			logger.warn("Cannot wite:"+str(message))
 		
 		msg = Message(message['payload'])
+
+		
 		if msg.type == 'BACKTRACE':
 			#if 'facebook' in msg.method or 'google' in msg.method:
 			for btblock in self.traceconfig['BacktraceBlock']:
@@ -260,7 +265,7 @@ class FridaWrapper():
 					print(msg)
 				else:
 					self.tmp += str(msg) 
-		
+			
 		self.msg.append(msg)
 
 	def show_tmp(self):

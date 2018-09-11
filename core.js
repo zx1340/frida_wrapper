@@ -117,7 +117,6 @@ function traceMethod(targetClassMethod)
 
 			var send_data = "I::" + id + "::" + targetClassMethod;
 
-
 			for(var j = 0; j < arguments.length;j++){
 
 				if (arguments[j] == null){
