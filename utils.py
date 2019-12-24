@@ -15,7 +15,7 @@ logging.addLevelName( logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelN
 
 logger = logging.getLogger(__name__)
 
-def get_all_file():
+def get_all_file(source_folder):
 	ret = []
 	for r, d, f in os.walk(source_folder):
 		for file in f:
@@ -32,7 +32,9 @@ def file_exits(fpath):
 def get_app_version(app_name):
 	ret = cmd_get_output("adb shell dumpsys package %s | grep versionCode"%app_name)
 	if not ret:
-		raise SystemExit('dumpsys not found on device')
+		#raise SystemExit('dumpsys not found on device')
+		print("Cannot found package")
+		return '1337'
 	else:
 		try:
 			return re.findall(r'\d+',ret)[0]
@@ -54,8 +56,6 @@ def project_exits(app_name):
 		logger.info('Found project/%s/%s'%(app_name,app_version))
 	return app_version
 
-
-
 def create_project(app_name,app_version):
 	logger.info('Create project folder: project/%s/%s'%(app_name,app_version))
 	os.mkdir('project/%s/%s'%(app_name,app_version))
@@ -63,14 +63,10 @@ def create_project(app_name,app_version):
 	make_smali_code(app_name,app_version)
 	#decompile(app_name,app_version)
 
-
-
 def hexdump(src, length=16):
-	
-
 	FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
 	lines = []
-	for c in xrange(0, len(src), length):
+	for c in range(0, len(src), length):
 		chars = src[c:c+length]
 		while u'' in chars:
 			chars.remove(u'')
@@ -98,11 +94,12 @@ def which(program):
 
 def cmd_get_output(cmd):
 	logger.info("CMD:"+cmd)
+	logger.info("PWD" +  os.getcwd())
 	process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr= subprocess.PIPE)
 	result,error = process.communicate()
 	if error:
 		logger.warning(error)
-	return result[:-1]
+	return result[:-1].decode('utf-8')
 
 def copy_apk_file(process_name,app_version):
 	logger.info("Copy apk file %s"%process_name)
@@ -124,7 +121,7 @@ def make_smali_code(process_name,app_version):
 	if not len(all_dex):
 		raise SystemExit("Cannot found any dex file")
 	for dex_file in all_dex:
-		cmd_get_output('baksmali d %s -o project/%s/%s/smali_code/'%(dex_file,process_name,app_version))
+		cmd_get_output('java -jar baksmali.jar d %s -o project/%s/%s/smali_code/'%(dex_file,process_name,app_version))
 	cmd_get_output('rm -rf project/tmp')
 
 def decompile(process_name,app_version):

@@ -44,7 +44,7 @@ function traceClass(targetClass)
 }
 
 
-id = 0;
+var  id = 0;
 function makeid() {
 	id += 1;
 	return id;
@@ -97,7 +97,12 @@ function traceMethod(targetClassMethod)
 	var targetMethod = targetClassMethod.slice(delim + 1, targetClassMethod.length)
 
 	var hook = Java.use(targetClass);
-	var overloadCount = hook[targetMethod].overloads.length;
+	try{
+		var overloadCount = hook[targetMethod].overloads.length;
+	}catch(e){	
+		console.log("Cannot found method", targetMethod);
+		return
+	}
 
 	console.log("Tracing " + targetClassMethod + " [" + overloadCount + " overload(s)]");
 
@@ -106,12 +111,8 @@ function traceMethod(targetClassMethod)
 	for (var i = 0; i < overloadCount; i++) {
 		hook[targetMethod].overloads[i].implementation = function() {
 
-			//if (arguments.length) console.log();
-			
-			Java.perform(function() {
-				bt = Java.use("android.util.Log").getStackTraceString(Java.use("java.lang.Exception").$new());
-			}); 
-
+			var bt = Java.use("android.util.Log").getStackTraceString(Java.use("java.lang.Exception").$new());
+			console.log(bt);
 			//Create specical id when enter method
 			var id = makeid();
 
@@ -152,3 +153,14 @@ function traceMethod(targetClassMethod)
 		}
 	}
 }
+
+
+
+// Java.perform(function() {
+// 	var mainactivity = Java.use("com.google.android.gms.fido.fido2.ui.AuthenticateChimeraActivity");
+// 		mainactivity.onCreate.overload('android.os.Bundle').implementation = function(x) {
+// 			send("MainActivity.onCreate() HIT!!!");
+// 			var ret = this.onCreate.overload().call(this,x);
+// 			return ret;
+// 	};
+// });   

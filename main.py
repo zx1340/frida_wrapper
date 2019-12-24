@@ -7,6 +7,7 @@ import glob
 import cmd
 from utils import *
 from traceconfig import traceconfig
+from colored import fg, bg, attr
 
 # pylint: disable=W0312,C0303,C0326,C0111,C0301
 __metaclass__ = type
@@ -23,11 +24,10 @@ class Command(cmd.Cmd):
 			name = 'stranger'
 		else:
 			name = args
-		print "Hello, %s" % name
+		print ("Hello, %s" % name)
 
 	def do_quit(self, args):
 		"""Quits the program."""
-		print "Quitting."
 		raise SystemExit
 
 	def do_fhook(self,args):
@@ -37,12 +37,25 @@ class Command(cmd.Cmd):
 	def do_chook(self,args):
 		"""Create frida hook class"""
 		self.frida.scripts.exports.ch(args)
+	
+	def do_shook(self,args):
+		"""Create frida hook all class contain string"""
+		allfile = self.frida.data.get_file_name_match(args)
+		for fname in allfile:
+			print ("\"" + fname + "\",")
+			self.frida.scripts.exports.ch(fname)
+
+	def do_phook(self,args):
+		"""Create frida package hook"""
+		allclass = self.frida.data.get_class_name(args)
+		for fname in allclass:
+			print ("\"" + fname + "\",")
+			self.frida.scripts.exports.ch(fname)
 
 	def do_c(self,args):
 		"""Continue programe"""
 		self.frida.script.exports.c()
 	
-
 	def do_smali(self,args):
 		"""show smali code"""
 		self.frida.data.smali_code(args)
@@ -73,7 +86,7 @@ class Command(cmd.Cmd):
 	def do_q(self,args):
 		"""Quit"""
 		#close file handler before exit
-		self.frida.fhandle.close()
+		# self.frida.fhandle.close()
 		sys.exit()
 
 
@@ -128,6 +141,34 @@ class Data():
 						self.frida.show_tmp()
 						return
 
+	def get_file_name_match(self,args):
+		all_file = glob.glob(self.smali_loc + "/*.smali")
+		if not len(all_file):
+			logger.error("Cannot found smali file")
+			return 
+		ret = []
+		logger.info("Found %s file match" % args)
+		for fname in all_file:
+			with open(fname) as f:
+				if args in f.read():
+					if fname not in ret:	
+						ret.append(fname.replace(self.smali_loc,'').replace('/','.').replace('.smali',''))
+						logger.info("Found %s" % fname)
+		return ret	
+
+	def get_class_name(self,args):
+		package_location  = self.smali_loc + args.replace('.','/')+ "/*.smali"
+		all_file = glob.glob(package_location)
+		if not len(all_file):
+			logger.error("Cannot found smali file match %s" %(package_location))
+			return
+		ret = []
+		logger.info("Found %d"% len(all_file))
+		for fname in all_file:
+			with open(fname) as f:
+				ret.append(fname.replace(self.smali_loc,'').replace('/','.').replace('.smali',''))
+		return ret	
+
 class Message():
 	def __init__(self,data):
 		self.data = data
@@ -140,10 +181,10 @@ class Message():
 		
 		if self.type == 'O':
 			if self.args[0].startswith('[') and self.args[0].endswith(']'):
-				return "["+self.type+"] | "+self.sig+" | "+self.method+": \n"+hexdump(self.args[0][1:-1].split(','))+'\n'
+				return fg(int(self.sig)%15) + "["+self.type+"] | "+self.sig+" | "+self.method+": \n"+hexdump(self.args[0][1:-1].split(','))+'\n' +  attr(0)
 			else:
-				return "["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'
-		ret = ""
+				return fg(int(self.sig)%15) +"["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'+  attr(0)
+		ret = fg(int(self.sig)%15)
 
 		ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + '\n'
 		for i in range(len(self.args)):
@@ -152,7 +193,7 @@ class Message():
 				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]\n"+hexdump(self.args[i][1:-1].split(','))+'\n'
 			else:
 				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]: "+self.args[i]+'\n'
-		return ret
+		return ret + attr(0)
 
 
 class FridaWrapper():
@@ -167,7 +208,7 @@ class FridaWrapper():
 		self.scripts = None
 		self.bind_device()
 		self.create_script()
-		self.fhandle = open(self.prj_base+'/'+current_time(),'w')
+		# self.fhandle = open(self.prj_base+'/'+current_time(),'w')
 		self.show = True
 		self.tmp = ""
 		self.block_sig = ""
@@ -180,15 +221,20 @@ class FridaWrapper():
 			hook_data = f.read()
 		f.close()
 
+		with open('external.js','r') as f:
+			hook_data += f.read()
+		f.close()
+
 		if self.args.attach:
-			logger.info("Frida now attach to process")
+			logger.info("Frida now attach to process %s" % self.prc_name)
 			try:
 				self.frida_prc_name = self.frida_device.get_process(self.prc_name)
 			except:
 				raise SystemExit("Process not found %s"%self.prc_name)
-			session = self.frida_device.attach(self.frida_prc_name)
+			logger.info("Device %s" % self.frida_device)
+			logger.info("Device %s" % self.frida_prc_name)
+			session = self.frida_device.attach(self.prc_name)
 			self.scripts = session.create_script(hook_data)
-
 			
 			self.scripts.on('message', self.on_message)
 			self.scripts.load()
@@ -227,12 +273,11 @@ class FridaWrapper():
 	def get_backtrace(self,args):
 		for msg in self.msg:
 			if msg.sig == args:
-				print msg.method.replace('java.lang.Exception','')
+				print (msg.method.replace('java.lang.Exception',''))
 
 	def do_resume(self):
 		self.frida_device.resume(self.pid)
 		
-
 	
 	def bind_device(self, timeout=0):
 		try:
@@ -244,15 +289,16 @@ class FridaWrapper():
 
 	def on_message(self,message, data):
 		#save log
+		# try:
+		# 	self.fhandle.write(message['payload'])
+		# 	self.fhandle.flush()
+		# except:
+		# 	logger.warn("Cannot wite:"+str(message))
 		try:
-			self.fhandle.write(message['payload'])
-			self.fhandle.flush()
+			msg = Message(message['payload'])
 		except:
-			logger.warn("Cannot wite:"+str(message))
-		
-		msg = Message(message['payload'])
+			print ("Cannot parse message", message)
 
-		
 		if msg.type == 'BACKTRACE':
 			#if 'facebook' in msg.method or 'google' in msg.method:
 			for btblock in self.traceconfig['BacktraceBlock']:
