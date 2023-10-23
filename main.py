@@ -8,6 +8,8 @@ import cmd
 from utils import *
 from traceconfig import traceconfig
 from colored import fg, bg, attr
+import subprocess
+
 
 # pylint: disable=W0312,C0303,C0326,C0111,C0301
 __metaclass__ = type
@@ -220,20 +222,22 @@ class FridaWrapper():
 		with open('core.js','r') as f:
 			hook_data = f.read()
 		f.close()
+		
 
-		with open('external.js','r') as f:
-			hook_data += f.read()
-		f.close()
+		# Check if external.js exits
+		if file_exits('external.js'):
+			with open('external.js','r') as f:
+				hook_data += f.read()
+			f.close()
 
 		if self.args.attach:
 			logger.info("Frida now attach to process %s" % self.prc_name)
-			try:
-				self.frida_prc_name = self.frida_device.get_process(self.prc_name)
-			except:
-				raise SystemExit("Process not found %s"%self.prc_name)
+			proc_id = int(subprocess.check_output(f"adb shell pidof {self.prc_name}".split()))
+			if not proc_id:
+				logger.error("Cannot found process id")
+				sys.exit()
 			logger.info("Device %s" % self.frida_device)
-			logger.info("Device %s" % self.frida_prc_name)
-			session = self.frida_device.attach(self.prc_name)
+			session = self.frida_device.attach(proc_id)
 			self.scripts = session.create_script(hook_data)
 			
 			self.scripts.on('message', self.on_message)

@@ -4,7 +4,7 @@ traceconfig = {
 ],
 'Class':[
 	
-'java.security.KeyStore'
+# 	'java.security.KeyStore'
 
 	],
 'BacktraceBlock':[
