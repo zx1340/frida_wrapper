@@ -119,12 +119,29 @@ function traceMethod(targetClassMethod)
 			var send_data = "I::" + id + "::" + targetClassMethod;
 
 			for(var j = 0; j < arguments.length;j++){
+				
+				
+
 
 				if (arguments[j] == null){
 					
 					send_data+="::null";
 				}
 				else if (arguments[j].toString()=="[object Object]"){
+
+						if( JSON.stringify(arguments[j]).toString().includes("java.util.Map, $className: java.util.HashMap>")){
+
+							var map = arguments[j];
+							var mapKeys = map.keySet().toArray();
+							console.log("HASH MAP SIZE", mapKeys.length);
+							for (var i = 0; i < mapKeys.length; i++) {
+								var key = mapKeys[i];
+									var value = map.get(key);
+								console.log("Map Entry: " + key + " -> " + value);
+							}
+						}else{
+							console.log("GOT OBJECT", JSON.stringify(arguments[j]).toString())
+						}
 
 					send_data+="::"+JSON.stringify(arguments[j]);
 				}
@@ -154,13 +171,3 @@ function traceMethod(targetClassMethod)
 	}
 }
 
-
-
-// Java.perform(function() {
-// 	var mainactivity = Java.use("com.google.android.gms.fido.fido2.ui.AuthenticateChimeraActivity");
-// 		mainactivity.onCreate.overload('android.os.Bundle').implementation = function(x) {
-// 			send("MainActivity.onCreate() HIT!!!");
-// 			var ret = this.onCreate.overload().call(this,x);
-// 			return ret;
-// 	};
-// });   
