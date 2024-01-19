@@ -133,6 +133,11 @@ def basic_check():
 	if out == 'List of devices attached\n\n':
 		raise SystemExit('Device not found')
 
+	# check if project folder exits
+	if not os.path.exists('project/'):
+		logger.info("Create project folder")
+		os.mkdir('project')
+
 def current_time():
 	return str(time.time())
 
