@@ -33,33 +33,38 @@ class Command(cmd.Cmd):
 		raise SystemExit
 
 	def do_fhook(self,args):
-		"""Create frida hook function"""
-		self.frida.scripts.exports.fh(args)
+		"""Create frida hook function: fhook android.util.Log.d"""
+		self.frida.scripts.exports_sync.fh(args)
 	
 	def do_chook(self,args):
 		"""Create frida hook class"""
-		self.frida.scripts.exports.ch(args)
+		self.frida.scripts.exports_sync.ch(args)
 	
 	def do_shook(self,args):
-		"""Create frida hook all class contain string"""
+		"""Create frida hook all class contain string| """
 		allfile = self.frida.data.get_file_name_match(args)
 		for fname in allfile:
 			print ("\"" + fname + "\",")
-			self.frida.scripts.exports.ch(fname)
+			self.frida.scripts.exports_sync.ch(fname)
+
+
+	def do_fc(self,args):
+		""" Find class, filter all android class: fc <filter>"""
+		self.frida.scripts.exports_sync.fc(args)
 
 	def do_phook(self,args):
 		"""Create frida package hook"""
 		allclass = self.frida.data.get_class_name(args)
 		for fname in allclass:
 			print ("\"" + fname + "\",")
-			self.frida.scripts.exports.ch(fname)
+			self.frida.scripts.exports_sync.ch(fname)
 
 	def do_c(self,args):
 		"""Continue programe"""
-		self.frida.script.exports.c()
+		self.frida.scripts.exports_sync.c()
 	
 	def do_smali(self,args):
-		"""show smali code"""
+		"""show smali code| smali <class.method>"""
 		self.frida.data.smali_code(args)
 
 	def do_bt(self,args):
@@ -73,7 +78,7 @@ class Command(cmd.Cmd):
 
 	
 	def do_java(self,args):
-		"""Show smali code"""
+		"""Show smali code| smali <class.method>"""
 		self.frida.data.java_code(args)
 
 
@@ -90,7 +95,17 @@ class Command(cmd.Cmd):
 		#close file handler before exit
 		# self.frida.fhandle.close()
 		sys.exit()
-
+	
+	def do_help(self,args):
+		# Get all command, print help of each command
+		if args:
+			cmd.Cmd.do_help(self,args)
+		else:
+			print ("Available command:")
+			for i in self.get_names():
+				if i.startswith('do_'):
+					print("\t"+i[3:] + " : ",end=" ")
+					self.do_help(i[3:])
 
 class Data():
 	def __init__(self,fridawp,prj_base):
@@ -183,9 +198,9 @@ class Message():
 		
 		if self.type == 'O':
 			if self.args[0].startswith('[') and self.args[0].endswith(']'):
-				return fg(int(self.sig)%15) + "["+self.type+"] | "+self.sig+" | "+self.method+": \n"+hexdump(self.args[0][1:-1].split(','))+'\n' +  attr(0)
+				return fg(int(self.sig)%15 + 1) + "["+self.type+"] | "+self.sig+" | "+self.method+": \n"+hexdump(self.args[0][1:-1].split(','))+'\n' +  attr(0)
 			else:
-				return fg(int(self.sig)%15) +"["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'+  attr(0)
+				return fg(int(self.sig)%15 + 1) +"["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'+  attr(0)
 		ret = fg(int(self.sig)%15)
 
 		ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + '\n'
@@ -245,10 +260,10 @@ class FridaWrapper():
 
 			#create script from config file
 			for method in self.traceconfig['Method']:
-				self.scripts.exports.fh(method)
+				self.scripts.exports_sync.fh(method)
 			
 			for _class in self.traceconfig['Class']:
-				self.scripts.exports.ch(_class)
+				self.scripts.exports_sync.ch(_class)
 
 		else:
 			self.pid = self.frida_device.spawn([self.prc_name])
@@ -264,10 +279,10 @@ class FridaWrapper():
 			self.scripts.on('message', self.on_message)
 			self.scripts.load()
 			for method in self.traceconfig['Method']:
-				self.scripts.exports.fh(method)
+				self.scripts.exports_sync.fh(method)
 			
 			for _class in self.traceconfig['Class']:
-				self.scripts.exports.ch(_class)
+				self.scripts.exports_sync.ch(_class)
 
 			#TODO: Fix that
 			time.sleep(1)
