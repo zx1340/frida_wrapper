@@ -1,6 +1,6 @@
 traceconfig = {
 'Method':[
-	
+	'android.util.Log.d',	
 ],
 'Class':[
 	
