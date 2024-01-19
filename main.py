@@ -72,6 +72,15 @@ class Command(cmd.Cmd):
 		self.frida.get_backtrace(args)
 
 
+
+	def do_rm(self,args):
+		"""Rplace method arguiment :rm com.abc.xyz """
+
+		method_name = args.split(' ')[0]
+		replace_param = args.split(' ')[1:]
+
+		self.frida.scripts.exports_sync.rm(method_name, )
+
 	def do_resume(self,args):
 		"""Resume process"""
 		self.frida.do_resume()
@@ -196,20 +205,28 @@ class Message():
 
 	def __str__(self):
 		
+		choose_color = int(self.sig)%15 + 1 # Make sure we dont get black color
+
+
+		in_or_out = "IN " if self.type == 'I' else "OUT"
+
 		if self.type == 'O':
 			if self.args[0].startswith('[') and self.args[0].endswith(']'):
-				return fg(int(self.sig)%15 + 1) + "["+self.type+"] | "+self.sig+" | "+self.method+": \n"+hexdump(self.args[0][1:-1].split(','))+'\n' +  attr(0)
+				# Return value is arrayn
+				return fg(choose_color) + "["+in_or_out+"] | "+self.sig+" | "+self.method+": \n"+ hexdump(self.args[0][1:-1].split(','))+'\n' +  attr(0)
 			else:
-				return fg(int(self.sig)%15 + 1) +"["+self.type+"] | "+self.sig+" | "+self.method+": \t"+self.args[0]+'\n'+  attr(0)
-		ret = fg(int(self.sig)%15)
+				return fg(choose_color) +"["+in_or_out+"] | "+self.sig+" | "+self.method+": \t"+ self.args[0]+'\n'+  attr(0)
+		
+		
+		ret = fg(choose_color)
 
-		ret += "["+ self.type+"] | "+self.sig+" | "+ self.method + '\n'
+		ret += "["+ in_or_out +"] | "+self.sig+" | "+ self.method + '\n'
 		for i in range(len(self.args)):
 
 			if self.args[i].startswith('[') and self.args[i].endswith(']'):
-				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]\n"+hexdump(self.args[i][1:-1].split(','))+'\n'
+				ret += "\t"* 6 + ":\t[ARG:"+str(i)+"]\n"+hexdump(self.args[i][1:-1].split(','))+'\n'
 			else:
-				ret += "\t\t\t\t\t\t:\t[ARG:"+str(i)+"]: "+self.args[i]+'\n'
+				ret += "\t"* 6 + ":\t[ARG:" + str(i)+"]: "+self.args[i]+'\n'
 		return ret + attr(0)
 
 
@@ -225,7 +242,6 @@ class FridaWrapper():
 		self.scripts = None
 		self.bind_device()
 		self.create_script()
-		# self.fhandle = open(self.prj_base+'/'+current_time(),'w')
 		self.show = True
 		self.tmp = ""
 		self.block_sig = ""
