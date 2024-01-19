@@ -330,7 +330,7 @@ def main():
 	
 	args = parser.parse_args()
 	if not args.process_name:
-		logger.exception("Need process name")
+		logger.exception("Need process name run with: python main.py -p <process_name>")
 		sys.exit()
 
 	basic_check()
